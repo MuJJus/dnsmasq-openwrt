@@ -1,0 +1,51 @@
+From e2ba0df2d4798e52e188c2f7f74613867d5aa82a Mon Sep 17 00:00:00 2001
+From: Simon Kelley <simon@thekelleys.org.uk>
+Date: Fri, 31 May 2013 17:04:25 +0100
+Subject: [PATCH 1/1] Don't BIND DHCP socket if more interfaces may come along later.
+
+---
+ src/dhcp-common.c |   20 +++++++++++++-------
+ 1 file changed, 13 insertions(+), 7 deletions(-)
+
+diff --git a/src/dhcp-common.c b/src/dhcp-common.c
+index 8de4268..9321e92 100644
+--- a/src/dhcp-common.c
++++ b/src/dhcp-common.c
+@@ -347,21 +347,27 @@ void bindtodevice(int fd)
+      to that device. This is for the use case of  (eg) OpenStack, which runs a new
+      dnsmasq instance for each VLAN interface it creates. Without the BINDTODEVICE, 
+      individual processes don't always see the packets they should.
+-     SO_BINDTODEVICE is only available Linux. */
++     SO_BINDTODEVICE is only available Linux. 
++
++     Note that if wildcards are used in --interface, or a configured interface doesn't
++     yet exist, then more interfaces may arrive later, so we can't safely assert there
++     is only one interface and proceed.
++*/
+   
+   struct irec *iface, *found;
+-  
++  struct iname *if_tmp;
++
++  for (if_tmp = daemon->if_names; if_tmp; if_tmp = if_tmp->next)
++    if (if_tmp->name && (!if_tmp->used || strchr(if_tmp->name, '*')))
++      return;
++
+   for (found = NULL, iface = daemon->interfaces; iface; iface = iface->next)
+     if (iface->dhcp_ok)
+       {
+ 	if (!found)
+ 	  found = iface;
+ 	else if (strcmp(found->name, iface->name) != 0) 
+-	  {
+-	    /* more than one. */
+-	    found = NULL;
+-	    break;
+-	  }
++	  return; /* more than one. */
+       }
+   
+   if (found)
+-- 
+1.7.2.5
+

@@ -1,0 +1,50 @@
+From 797a7afba477390bc016c647cfb792c85ee6102d Mon Sep 17 00:00:00 2001
+From: Giacomo Tazzari <giacomo.tazzari@gmail.com>
+Date: Mon, 22 Apr 2013 13:16:37 +0100
+Subject: [PATCH] Fix crash on SERVFAIL when --conntrack in use.
+
+---
+ CHANGELOG     | 5 ++++++
+ src/forward.c | 6 +++---
+ 2 files changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/CHANGELOG b/CHANGELOG
+index 93aaf18..6cb1b51 100644
+--- a/CHANGELOG
++++ b/CHANGELOG
+@@ -1,3 +1,8 @@
++	    Fix crash if upstream server returns SERVFAIL when
++	    --conntrack in use. Thanks to Giacomo Tazzari for finding
++	    this and supplying the patch. 
++	
++
+ version 2.66
+             Add the ability to act as an authoritative DNS
+             server. Dnsmasq can now answer queries from the wider 'net
+diff --git a/src/forward.c b/src/forward.c
+index 77d6849..78495ca 100644
+--- a/src/forward.c
++++ b/src/forward.c
+@@ -328,8 +328,8 @@ static int forward_query(int udpfd, union mysockaddr *udpaddr,
+       struct server *firstsentto = start;
+       int forwarded = 0;
+       
+-      if (udpaddr && option_bool(OPT_ADD_MAC))
+-	plen = add_mac(header, plen, ((char *) header) + PACKETSZ, udpaddr);
++      if (option_bool(OPT_ADD_MAC))
++	plen = add_mac(header, plen, ((char *) header) + PACKETSZ, &forward->source);
+       
+       while (1)
+ 	{ 
+@@ -372,7 +372,7 @@ static int forward_query(int udpfd, union mysockaddr *udpaddr,
+ 		  if (option_bool(OPT_CONNTRACK))
+ 		    {
+ 		      unsigned int mark;
+-		      if (get_incoming_mark(udpaddr, dst_addr, 0, &mark))
++		      if (get_incoming_mark(&forward->source, &forward->dest, 0, &mark))
+ 			setsockopt(fd, SOL_SOCKET, SO_MARK, &mark, sizeof(unsigned int));
+ 		    }
+ #endif
+-- 
+1.8.1.4
+

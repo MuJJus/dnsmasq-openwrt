@@ -1,0 +1,51 @@
+From 429805dbbc3888abc0d472c45935e92057964384 Mon Sep 17 00:00:00 2001
+From: Simon Kelley <simon@thekelleys.org.uk>
+Date: Fri, 31 May 2013 13:47:26 +0100
+Subject: [PATCH 1/1] Allow constructed ranges from interface address at end of range.
+
+Also make man page on this clearer, as it's been confusing many.
+---
+ man/dnsmasq.8 |   11 ++++++++++-
+ src/dhcp6.c   |    4 +++-
+ 2 files changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/man/dnsmasq.8 b/man/dnsmasq.8
+index d2e3d18..1c3dfeb 100644
+--- a/man/dnsmasq.8
++++ b/man/dnsmasq.8
+@@ -649,7 +649,16 @@ This forms a template which describes how to create ranges, based on the address
+ 
+ .B --dhcp-range=::1,::400,constructor:eth0
+ 
+-will look for addresses of the form <network>::1 on eth0 and then create a range from <network>::1 to <network>::400. If the interface is assigned more than one network, then the corresponding ranges will be automatically created, and then deprecated and finally removed again as the address is deprecated and then deleted. The interface name may have a final "*" wildcard.
++will look for addresses of the form <network>::1 or <network>:400 on
++eth0 and then create a range from <network>::1 to <network>::400. If
++the interface is assigned more than one network, then the
++corresponding ranges will be automatically created, and then
++deprecated and finally removed again as the address is deprecated and
++then deleted. The interface name may have a final "*" wildcard. Note
++that just any address on eth0 will not do: the non-prefix part must be
++equal either the start or end address given in the dhcp-range. This is
++to prevent prefixes becoming perpetual if the interface 
++gains a SLAAC address for the prefix when it is advertised by dnsmasq.
+ 
+ The optional 
+ .B set:<tag> 
+diff --git a/src/dhcp6.c b/src/dhcp6.c
+index a827b2f..6cd30b5 100644
+--- a/src/dhcp6.c
++++ b/src/dhcp6.c
+@@ -538,7 +538,9 @@ static int construct_worker(struct in6_addr *local, int prefix,
+ 	  }
+ 	
+       }
+-    else if (addr6part(local) == addr6part(&template->start6) && wildcard_match(template->template_interface, ifrn_name))
++    else if ((addr6part(local) == addr6part(&template->start6) ||
++	      addr6part(local) == addr6part(&template->end6)) && 
++	     wildcard_match(template->template_interface, ifrn_name))
+       {
+ 	start6 = *local;
+ 	setaddr6part(&start6, addr6part(&template->start6));
+-- 
+1.7.2.5
+

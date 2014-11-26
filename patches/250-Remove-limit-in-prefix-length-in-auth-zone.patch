@@ -1,0 +1,68 @@
+From baa80ae5125beabd49edae2cdfaf3817a88a2ab6 Mon Sep 17 00:00:00 2001
+From: Simon Kelley <simon@thekelleys.org.uk>
+Date: Wed, 29 May 2013 16:32:07 +0100
+Subject: [PATCH 1/1] Remove limit in prefix length in --auth-zone.
+
+---
+ man/dnsmasq.8 |    9 ++++++---
+ src/auth.c    |    4 ++--
+ src/option.c  |    2 --
+ 3 files changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/man/dnsmasq.8 b/man/dnsmasq.8
+index 2638930..d2e3d18 100644
+--- a/man/dnsmasq.8
++++ b/man/dnsmasq.8
+@@ -572,13 +572,16 @@ If you use the first DNSSEC mode, validating resolvers in clients,
+ this option is not required. Dnsmasq always returns all the data
+ needed for a client to do validation itself. 
+ .TP
+-.B --auth-zone=<domain>[,<subnet>[,<subnet>.....]]
++.B --auth-zone=<domain>[,<subnet>[/<prefix length>][,<subnet>[/<prefix length>].....]]
+ Define a DNS zone for which dnsmasq acts as authoritative server. Locally defined DNS records which are in the domain
+ will be served, except that A and AAAA records must be in one of the
+ specified subnets, or in a subnet corresponding to a constructed DHCP
+ range. The subnet(s) are also used to define in-addr.arpa and
+-ipv6.arpa domains which are served for reverse-DNS queries. For IPv4
+-subnets, the prefix length is limited to the values 8, 16 or 24.
++ipv6.arpa domains which are served for reverse-DNS queries. If not
++specified, the prefix length defaults to 24 for IPv4 and 64 for IPv6.
++For IPv4 subnets, the prefix length should be have the value 8, 16 or 24
++unless you are familiar with RFC 2317 and have arranged the
++in-addr.arpa delegation accordingly. 
+ .TP
+ .B --auth-soa=<serial>[,<hostmaster>[,<refresh>[,<retry>[,<expiry>]]]]
+ Specify fields in the SOA record associated with authoritative
+diff --git a/src/auth.c b/src/auth.c
+index 2a3f323..b08f85c 100644
+--- a/src/auth.c
++++ b/src/auth.c
+@@ -520,10 +520,10 @@ size_t answer_auth(struct dns_header *header, char *limit, size_t qlen, time_t n
+ 	      in_addr_t a = ntohl(subnet->addr4.s_addr) >> 8;
+ 	      char *p = name;
+ 	      
+-	      if (subnet->prefixlen == 24)
++	      if (subnet->prefixlen >= 24)
+ 		p += sprintf(p, "%d.", a & 0xff);
+ 	      a = a >> 8;
+-	      if (subnet->prefixlen != 8)
++	      if (subnet->prefixlen >= 16 )
+ 		p += sprintf(p, "%d.", a & 0xff);
+ 	      a = a >> 8;
+ 	      p += sprintf(p, "%d.in-addr.arpa", a & 0xff);
+diff --git a/src/option.c b/src/option.c
+index ac54c31..25bbf48 100644
+--- a/src/option.c
++++ b/src/option.c
+@@ -1637,8 +1637,6 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
+ 	    
+ 	    if (inet_pton(AF_INET, arg, &subnet->addr4))
+ 	      {
+-		if ((prefixlen & 0x07) != 0 || prefixlen > 24)
+-		  ret_err(_("bad prefix"));
+ 		subnet->prefixlen = (prefixlen == 0) ? 24 : prefixlen;
+ 		subnet->is6 = 0;
+ 	      }
+-- 
+1.7.2.5
+

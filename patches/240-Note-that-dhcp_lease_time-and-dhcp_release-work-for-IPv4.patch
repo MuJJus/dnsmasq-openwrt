@@ -1,0 +1,45 @@
+From 1c10b9de118c951a5aedc130e55101987dcc3feb Mon Sep 17 00:00:00 2001
+From: Simon Kelley <simon@thekelleys.org.uk>
+Date: Tue, 23 Apr 2013 10:58:35 +0100
+Subject: [PATCH] Note that dhcp_lease_time and dhcp_release only work for
+ IPv4.
+
+---
+ contrib/wrt/dhcp_lease_time.1 | 6 ++++--
+ contrib/wrt/dhcp_release.1    | 2 ++
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/contrib/wrt/dhcp_lease_time.1 b/contrib/wrt/dhcp_lease_time.1
+index 2720b71..2fa78d3 100644
+--- a/contrib/wrt/dhcp_lease_time.1
++++ b/contrib/wrt/dhcp_lease_time.1
+@@ -12,9 +12,11 @@ If an error occurs or no lease exists for the given address,
+ nothing is sent to stdout a message is sent to stderr and a
+ non-zero error code is returned.
+ 
+-Requires dnsmasq 2.40 or later and may not work with other DHCP servers.
++Requires dnsmasq 2.66 or later and may not work with other DHCP servers.
+ 
+-The address argument is a dotted-quad IP addresses and mandatory. 
++The address argument is a dotted-quad IP addresses and mandatory.
++.SH LIMITATIONS
++Only works with IPv4 addresses and DHCP leases. 
+ .SH SEE ALSO
+ .BR dnsmasq (8)
+ .SH AUTHOR
+diff --git a/contrib/wrt/dhcp_release.1 b/contrib/wrt/dhcp_release.1
+index eb5307a..e71aba0 100644
+--- a/contrib/wrt/dhcp_release.1
++++ b/contrib/wrt/dhcp_release.1
+@@ -27,6 +27,8 @@ for ethernet. This encoding is the one used in dnsmasq lease files.
+ The client-id is optional. If it is "*" then it treated as being missing.
+ .SH NOTES
+ MUST be run as root - will fail otherwise.
++.SH LIMITATIONS
++Only usable on IPv4 DHCP leases.
+ .SH SEE ALSO
+ .BR dnsmasq (8)
+ .SH AUTHOR
+-- 
+1.8.1.4
+

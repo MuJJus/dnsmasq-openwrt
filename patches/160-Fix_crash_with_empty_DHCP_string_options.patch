@@ -1,0 +1,26 @@
+From 625ac28c61b0a5e6a252db00d72fbac6d88718fd Mon Sep 17 00:00:00 2001
+From: Simon Kelley <simon@thekelleys.org.uk>
+Date: Tue, 2 Jul 2013 21:19:32 +0100
+Subject: [PATCH] Fix crash with empty DHCP string options.
+
+---
+ src/rfc2131.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletions(-)
+
+diff --git a/src/rfc2131.c b/src/rfc2131.c
+index 499f5c4..e7fa75f 100644
+--- a/src/rfc2131.c
++++ b/src/rfc2131.c
+@@ -1833,7 +1833,8 @@ static int do_opt(struct dhcp_opt *opt, unsigned char *p, struct dhcp_context *c
+ 	    }
+ 	}
+       else
+-	memcpy(p, opt->val, len);
++	/* empty string may be extended to "\0" by null_term */
++	memcpy(p, opt->val ? opt->val : (unsigned char *)"", len);
+     }  
+   return len;
+ }
+-- 
+1.7.2.5
+

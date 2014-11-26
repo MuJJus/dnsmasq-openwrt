@@ -1,0 +1,30 @@
+From ab915f837c1db9b8b095158b41028ea71246d68d Mon Sep 17 00:00:00 2001
+From: Simon Kelley <simon@thekelleys.org.uk>
+Date: Tue, 30 Apr 2013 10:41:28 +0100
+Subject: [PATCH] Only use ourselves as default DNS server for RA if we're
+ doing DNS.
+
+This makes RA the same as DHCP4/6
+---
+ src/radv.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/radv.c b/src/radv.c
+index a708758..72a93cb 100644
+--- a/src/radv.c
++++ b/src/radv.c
+@@ -300,9 +300,9 @@ static void send_ra(time_t now, int iface, char *iface_name, struct in6_addr *de
+ 	}
+     }
+ 	
+-  if (!done_dns)
++  if (daemon->port == NAMESERVER_PORT && !done_dns)
+     {
+-      /* default == us. */
++      /* default == us, as long as we are supplying DNS service. */
+       put_opt6_char(ICMP6_OPT_RDNSS);
+       put_opt6_char(3);
+       put_opt6_short(0);
+-- 
+1.8.1.4
+
